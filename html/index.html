@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>Argo Floats Animation</title>
+    <script src="d3-geo.min.js"></script>
+    <script src="curve.min.js"></script>
+    <script src="heatcanvas.js"></script>
+    <script src="simpleheat.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+	<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+	<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+	<style>
+		      html,body {
+        width:100%;
+        height:100%;
+        margin: 0;
+        padding: 0px 0 0 0;
+      }
+  </style>
+ </head>
+<body>
+	<div>
+	<canvas id="canvas" width="2000" height="1000"></canvas>
+</div>
+<script>
+	var backgroundImage = new Image();
+        backgroundImage.onload = backgroundImageLoaded;
+        backgroundImage.src = 'puffermap2000x1000.jpg';
+
+        function backgroundImageLoaded() {
+        	console.log("got the image");
+        	startAnimation();
+        }
+
+async function* makeTextFileLineIterator(fileURL) {
+  const utf8Decoder = new TextDecoder("utf-8");
+  let response = await fetch(fileURL);
+  let reader = response.body.getReader();
+  let {value: chunk, done: readerDone} = await reader.read();
+  chunk = chunk ? utf8Decoder.decode(chunk) : "";
+
+  let re = /\n|\r|\r\n/gm;
+  let startIndex = 0;
+  let result;
+
+  for (;;) {
+    let result = re.exec(chunk);
+    if (!result) {
+      if (readerDone) {
+        break;
+      }
+      let remainder = chunk.substr(startIndex);
+      ({value: chunk, done: readerDone} = await reader.read());
+      chunk = remainder + (chunk ? utf8Decoder.decode(chunk) : "");
+      startIndex = re.lastIndex = 0;
+      continue;
+    }
+    yield chunk.substring(startIndex, result.index);
+    startIndex = re.lastIndex;
+  }
+  if (startIndex < chunk.length) {
+    // last line didn't end in a newline char
+    yield chunk.substr(startIndex);
+  }
+}
+var width = 2000, height = 1000, quarterwidth = width/4;
+var project = d3.geoEquirectangular().scale(Math.min(width/ Math.PI, height/ Math.PI))
+                              .center([0, 0]).translate([width/2,height/2]);
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+ctx.fillStyle = "white";
+var data = [];
+var idx = -1;
+var floats = {};
+var profiles;
+var firstdate;
+var prev_year = 0;
+var displaydays = 90;
+var offscreen = new OffscreenCanvas(width, height);
+var offscreenCtx = offscreen.getContext("2d");
+
+var parseDate = function(str){
+    var y = str.substr(0,4),
+        m = str.substr(4,2),
+        d = str.substr(6,2);
+    return new Date(y+"-"+m+"-"+d+"T00:00:00Z");
+}
+function datediff(first, second) {
+    // Take the difference between the dates and divide by milliseconds per day.
+    // Round to nearest whole number to deal with DST.
+    return Math.round((second-first)/(1000*60*60*24));
+}
+var startAnimation = async() => {
+	var nfloats = 0;
+	for await (let line of makeTextFileLineIterator("https://spiddal.marine.ie/data/argo/profiles.txt")) {
+		var [profileRef,date,time,lat,lon,floatId,DAC,profileID] = line.split(",");
+		if(!isNaN(lon)){
+			date = parseDate(date);
+			firstdate = firstdate || date.getTime();
+			var day = datediff(firstdate,date.getTime());
+			if(lat.slice(-1) == "S"){
+				lat = -1 * Number(lat.slice(0, -1));
+			}
+			var [x,y] = project([Number(lon),Number(lat)]);
+			floatId = Number(floatId);
+			if(!floats[floatId]){
+				nfloats++;
+				floats[floatId] = {prev: -1, color: d3.color(d3.interpolatePlasma(Math.random())).formatRgb()};
+			}
+			data.push({floatId: floatId, date: date.getTime(), day: day, x: x % width, y: y, lat: Number(lat), lon: Number(lon), total: nfloats});
+
+		}
+	}
+	console.log("you got it");
+	setTimeout(sortThem,0);
+};
+var sortThem = function(){
+	if(idx<0){
+		profiles = {
+			float: new Int32Array(data.length),
+			total: new Int32Array(data.length),
+			date: new Uint32Array(data.length),
+			day: new Uint16Array(data.length),
+			x: new Float64Array(data.length), 
+			y: new Float64Array(data.length), 
+			prev: new Int32Array(data.length).fill(-1)};
+	}
+	for(var i=0;i<100000;i++){
+		idx++;
+		var o = data[idx];
+		if(!o){
+			//console.log(data.slice(0,10));
+			data = [];
+			idx = -1;
+			showAnimation();
+			return;
+		}
+		profiles.date[idx] = Math.round(o.date/1000/60/60/24);
+		profiles.float[idx] = o.floatId;
+		profiles.x[idx] = o.x;
+		profiles.y[idx] = o.y;
+		profiles.prev[idx] = floats[o.floatId].prev;
+		profiles.day[idx] = o.day;
+		profiles.total[idx] = o.total;
+		floats[o.floatId].prev = idx;
+	}
+	//console.log(data.length);
+	setTimeout(sortThem,0);
+}
+var drawingArgos = false;
+var showAnimation = function(){
+	idx = -1;
+	if(!drawingArgos){
+		window.requestAnimationFrame(drawArgos);
+	}
+}
+
+var updateHeatmap = function(){
+	              var options = undefined;
+              try{
+                options = JSON.parse(decodeURIComponent(document.location.hash).substring(1));
+                var nprofiles = profiles.day.length-1;
+                if(options.date){
+                	var date = new Date(options.date);
+                	nprofiles = profiles.date.binarySearch(date.getTime()/1000/60/60/24,intLessThan);
+                }
+                showHeatmap(nprofiles, displaydays, options.factor,options.radius,options.blur,options.minopacity);
+              }catch(e){
+                console.log("didn't parse options from the url hash",e);
+              }
+}
+window.onhashchange = updateHeatmap;
+var showHeatmap = function(nprofiles,ndays,factor,radius,blur,minopacity){
+	nprofiles = nprofiles || profiles.day.length-1;
+	ndays = ndays || 0;
+	factor = factor || 1;
+	radius = radius || 1.025;
+	blur = blur || 6.50;
+	minopacity = minopacity || 0;
+	var heatmap = new simpleheat(offscreen).radius(radius,blur);
+	var p = function(x,y){
+		return  ~~(x/factor)*~~(height/factor)+~~(y/factor);
+	}
+	var d = new Uint32Array(width/factor*height/factor).fill(0);
+	var max = 0;
+	for(var i=nprofiles;i>0;i--){
+		max = Math.max(++d[p(profiles.x[i],profiles.y[i])],max);
+		if(ndays && profiles.day[nprofiles]-profiles.day[i]>ndays){
+			break;
+		}
+	}
+	var grad = {};
+	for(var i=1;i<=10;i++){
+		grad[i/10] = d3.color(d3.interpolatePlasma(i/10)).formatRgb();
+	}
+	heatmap.gradient(grad)
+	//console.log(d);
+	//console.log("max",max);
+	heatmap.max = max;//max;
+	var data = [];
+	var w = width/factor, h = height/factor;
+	for(var i=0;i<d.length;i++){
+		if(d[i]){
+			data.push([translateX(~~(i/h)*factor),~~(i%h)*factor,d[i]]);
+		}
+	}
+	heatmap.data(data);
+	//console.log(new Date().toISOString(),"begin rendering heatmap");
+	drawBackgroundImage(ctx,0);
+
+	heatmap.draw(minopacity);
+
+	ctx.drawImage(offscreen,0,0);
+
+	showTextData(nprofiles,ctx,ndays?"recent":"ever");
+	//console.log(new Date().toISOString(),"done rendering heatmap")
+	var countdown = 36;
+	var hold = function(){
+		if(--countdown > 0){
+			requestAnimationFrame(hold);
+		}else if(ndays){
+			// shown for ndays, now show for all time.
+			showHeatmap(nprofiles);
+		}else{
+			requestAnimationFrame(drawArgos);
+		}
+	}
+	requestAnimationFrame(hold);
+}
+	var showTextData = function(idx,ctx,highlight){
+		highlight = highlight == undefined ? -1 : highlight;
+		var pd = new Date(profiles.date[idx]*1000*60*60*24);
+	    var seen = {};
+	    var nprofiles = 0;
+		var startday = profiles.day[idx+1<profiles.day.length?idx+1:(profiles.day.length-1)];
+		for(var i=idx; i>0; i--){
+			nprofiles++;
+			seen[profiles.float[i]] = true;
+			if(startday - profiles.day[i] > displaydays){
+				break;
+			}
+		}
+        var txt0 = "Argo Floats as of "+pd.toISOString().substring(0,10);
+        var txt1 = "      Past 90 Days  ";
+        var txt2 = "All Time";
+		var txt3 = "  Floats: ";
+		var txt4 = Object.keys(seen).length.toString().padStart(6," ");
+		var txt5 = profiles.total[idx].toString().padStart(12," ");
+		var txt6 = "Profiles: ";
+		var txt7 = nprofiles.toString().padStart(6," ");
+		var txt8 = idx.toString().padStart(12," ");
+		var destinationX = ~~(width*1950/4096);
+		var destinationY = ~~(height*700/2048);
+		var right = 0;
+		var top = 0
+		var font_size = height*40/2048;
+		var row_height = height*50/2048;
+		var texts = [
+			{                     txt: txt0, x: right, y: top, font: { size: font_size, face: "Lucida Console"}},
+			{highlight: "recent", txt: txt1, x: right, y: top+row_height, font: { size: font_size, face: "Lucida Console"}},
+			{highlight: "ever",   txt: txt2, x: "lastx", y: top+row_height, font: { size: font_size, face: "Lucida Console"}},
+			{                     txt: txt3, x: right, y: top+row_height*2, font: { size: font_size, face: "Lucida Console"}},
+			{highlight: "recent", txt: txt4, x: "lastx", y: top+row_height*2, font: { size: font_size, face: "Lucida Console"}},
+			{highlight: "ever",   txt: txt5, x: "lastx", y: top+row_height*2, font: { size: font_size, face: "Lucida Console"}},
+			{                     txt: txt6, x: right, y: top+row_height*3, font: { size: font_size, face: "Lucida Console"}},
+			{highlight: "recent", txt: txt7, x: "lastx", y: top+row_height*3, font: { size: font_size, face: "Lucida Console"}},
+			{highlight: "ever",   txt: txt8, x: "lastx", y: top+row_height*3, font: { size: font_size, face: "Lucida Console"}}
+		];
+
+        offscreenCtx.save();
+        offscreenCtx.clearRect(0, 0, width, height);
+
+        var gutter=height*10/2048;
+        var highlightColor = d3.color(d3.interpolatePlasma(0.95)).formatHex();;
+        var pwidth = 0, pheight=0;
+        var lastx = 0;
+        for(var i=0;i<texts.length;i++){
+        	if(texts[i].x == "lastx") texts[i].x = lastx;
+	        offscreenCtx.textBaseline = 'top';
+	        offscreenCtx.fillStyle = 'rgba(0,0,0,0.5)';
+	        offscreenCtx.font = ""+texts[i].font.size+"px "+texts[i].font.face;
+	        var textWidth = offscreenCtx.measureText(texts[i].txt).width;
+	        offscreenCtx.fillRect(texts[i].x,texts[i].y,textWidth,texts[i].font.size+gutter);
+	        lastx = texts[i].x + textWidth;
+	        offscreenCtx.fillStyle = (highlight && highlight == texts[i].highlight)? highlightColor : "#FFF";
+	        offscreenCtx.fillText(texts[i].txt, texts[i].x, texts[i].y);
+	        pwidth = Math.max(pwidth,lastx);
+	        pheight = Math.max(pheight,texts[i].y+row_height+gutter);
+        }
+        offscreenCtx.restore();
+        drawOffsetImage(ctx,offscreen,destinationX,destinationY);
+	}
+	var scrollpos = 0;
+	var translateX = function(x){
+		return (x-scrollpos+width)%width;
+	}
+
+	var drawOffsetImage = function(context,image,x,y){
+		var numImages = x-scrollpos == 0? 1:2;
+		    context.save();
+            context.translate(x-scrollpos, 0);
+            for (var i = 0; i < numImages; i++) {
+                context.drawImage(image, i * width, y);
+            }
+            context.restore();
+	}
+	var drawBackgroundImage = function(context,scroll){
+		scrollpos = (scrollpos+scroll) % width;
+		drawOffsetImage(context,backgroundImage,0,0);
+	}
+var drawArgos = function(){
+	if(idx == -1){
+		drawingArgos = true;
+		prev_year = 0;
+		console.log("starting animation",profiles.date[0],profiles.date[profiles.date.length-1],profiles.prev[0]);
+	}
+	if(idx+1 >= profiles.day.length){
+		drawingArgos = false;
+		showHeatmap(idx,displaydays);
+		return;
+	}
+	if(new Date(profiles.date[idx+1]*1000*60*60*24).getYear() != prev_year){
+		var a = prev_year;
+		prev_year = new Date(profiles.date[idx+1]*1000*60*60*24).getYear() 
+		if(a){
+			showHeatmap(idx,displaydays);
+			return;
+		}
+	}
+	window.requestAnimationFrame(drawArgos);
+	/*
+	        // Fade existing particle trails.
+    var gco = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.fillStyle = "rgba(0,0,0,0)";
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = gco;
+*/
+	drawBackgroundImage(ctx,1);
+	var ndates = 0;
+	var maxdays = 3;// 365/5/24 (5 seconds per year)
+	var startday = profiles.day[idx+1];
+	while(idx+1<profiles.day.length && profiles.day[idx+1]<startday+maxdays){
+		idx++;
+	}
+	for(var i=idx; i>0; i--){
+		if(startday - profiles.day[i] > displaydays){
+			break;
+		}
+		ctx.fillStyle = floats[profiles.float[i]].color;
+		ctx.fillRect(translateX(profiles.x[i]-1),profiles.y[i]-1,3,3);
+	}
+	showTextData(idx,ctx);
+}
+
+
+//https://gist.github.com/tierney/2474368
+Uint32Array.prototype.binarySearch = function(find, comparator) {
+  var low = 0, high = this.length - 1, i, comparison, prev_comparison;  
+  while (low <= high) {
+    i = Math.floor((low + high) / 2);
+    comparison = comparator(this[i], find);
+    prev_comparison = comparison
+    if (comparison < 0) { low = i + 1; continue; };
+    if (comparison > 0) { high = i - 1; continue; };
+    return i;
+  }
+  if (prev_comparison < 0) {
+      var option_low = i;
+      var option_high = i+1;
+  } else {
+      var option_low = i-1;
+      var option_high = i;
+  }
+  var dist_a = find - this[option_low];
+  var dist_b = this[option_high] - find;
+  if (dist_a < dist_b) {
+      return option_low;
+  } else {
+      return option_high;
+  }
+  return null;
+};
+
+intLessThan = function(a,b) {
+    if (a < b) {
+        return -1;
+    } else if (a > b) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+</script>
+</body>
+</html>
