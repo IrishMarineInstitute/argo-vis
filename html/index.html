@@ -94,7 +94,7 @@ function datediff(first, second) {
 }
 var startAnimation = async() => {
 	var nfloats = 0;
-	for await (let line of makeTextFileLineIterator("https://spiddal.marine.ie/data/argo/profiles.txt")) {
+	for await (let line of makeTextFileLineIterator("../data/profiles.txt")) {
 		var [profileRef,date,time,lat,lon,floatId,DAC,profileID] = line.split(",");
 		if(!isNaN(lon)){
 			date = parseDate(date);
