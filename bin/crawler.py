@@ -50,7 +50,10 @@ for (start_day,end_day,filename) in wanted(filenames):
                             end_day="{:02d}".format(end_day.day))
     page = requests.get(url, verify=False)
     tree = html.fromstring(page.content)
-    data = tree.xpath("//option[contains(@value,'/profile')][contains(@value,'.nc')]/text()")
+    xpath = "//option[contains(@value,'/profile')][contains(@value,'.nc')]/"
+    data = tree.xpath("{0}{1} | {0}{2}".format(xpath,"@value","text()"))
+    #join value with text...
+    data = [ ','.join(x) for x in zip(data[0::2], data[1::2]) ]
     data = [re.sub('[NE],',',',re.sub('\s*\|\s*',',',line)) for line in data]
     tmpfile = filename+next(tempfile._get_candidate_names())
     try:
