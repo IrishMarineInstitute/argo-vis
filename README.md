@@ -15,11 +15,17 @@ Full videos can be [downloaded here](http://spiddal.marine.ie/argos/).
 git clone https://github.com/IrishMarineInstitute/argo-vis.git
 cd argo-vis
 docker build -t timecut .
+
 ```
 
 # Running
 ```
 bin/argoanim.sh
+
 ```
 
-If it all works, you will find the mp4 videos in the output folder.
+If it all works, you will find the mp4 videos in the output folder. The whole process may take a couple of hours, running longer the first time as historical data must be fetched first.
+
+# How it works
+
+After downloading the argo data, the animation simply a html+javascript application made to run in a web browser. The animation is converted to video using [timecut](https://github.com/tungs/timecut).
