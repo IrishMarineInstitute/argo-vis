@@ -311,6 +311,7 @@ var showHeatmap = function(nprofiles,ndays,factor,radius,blur,minopacity){
 		drawOffsetImage(context,backgroundImage,0,0);
 	}
 var drawArgos = function(){
+        var doShowHeatmap = false;
 	if(idx == -1){
 		drawingArgos = true;
 		prev_year = 0;
@@ -318,10 +319,12 @@ var drawArgos = function(){
 	}
 	if(idx+1 >= profiles.day.length){
 		drawingArgos = false;
-		showHeatmap(idx,displaydays);
+		if(doShowHeatmap){
+			showHeatmap(idx,displaydays);
+		}
 		return;
 	}
-	if(new Date(profiles.date[idx+1]*1000*60*60*24).getYear() != prev_year){
+	if(doShowHeatmap && new Date(profiles.date[idx+1]*1000*60*60*24).getYear() != prev_year){
 		var a = prev_year;
 		prev_year = new Date(profiles.date[idx+1]*1000*60*60*24).getYear() 
 		if(a){

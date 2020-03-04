@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-VIDEO_DURATION_SECONDS=180
+VIDEO_DURATION_SECONDS=120
 #VIDEO_DURATION_SECONDS=5
 
 basedir=$(realpath $(dirname $0)/..)
