@@ -26,8 +26,14 @@
 </div>
 <script>
 	var backgroundImage = new Image();
+        var stillblack = false;
         backgroundImage.onload = backgroundImageLoaded;
-        backgroundImage.src = 'puffermap2000x1000.jpg';
+        if((""+location.hash).indexOf("stillblack")>=0){
+	  stillblack = true;
+          backgroundImage.src = 'pufferblack2000x1000.jpg';
+	}else{
+          backgroundImage.src = 'puffermap2000x1000.jpg';
+	}
 
         function backgroundImageLoaded() {
         	console.log("got the image");
@@ -307,7 +313,9 @@ var showHeatmap = function(nprofiles,ndays,factor,radius,blur,minopacity){
             context.restore();
 	}
 	var drawBackgroundImage = function(context,scroll){
-		scrollpos = (scrollpos+scroll) % width;
+		if(!stillblack){
+		  scrollpos = (scrollpos+scroll) % width;
+		}
 		drawOffsetImage(context,backgroundImage,0,0);
 	}
 var drawArgos = function(){
