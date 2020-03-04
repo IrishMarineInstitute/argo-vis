@@ -7,13 +7,17 @@ The Marine Institute specific use case is to display the data on a (https://puff
 
 ![alt text](example.gif "Example")
 
-#Installing
+Full videos can be (http://spiddal.marine.ie/argos/)[downloaded here].
+
+# Installing
+
 ```shell
 git clone https://github.com/IrishMarineInstitute/argo-vis.git
 cd argo-vis
 docker build -t timecut .
 ```
-#Running
+
+# Running
 ```
 bin/argoanim.sh
 ```
