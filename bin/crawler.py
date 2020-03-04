@@ -8,7 +8,7 @@ from time import sleep
 from calendar import monthrange
 import tempfile
 
-politeness = 1.0
+politeness = 0.5
 
 urlpattern = 'https://www.usgodae.org/cgi-bin/argo_select.pl?startyear={start_year}&startmonth={start_month}&startday={start_day}&endyear={end_year}&endmonth={end_month}&endday={end_day}&Nlat=90&Wlon=-180&Elon=180&Slat=-90&dac=ALL&floatid=ALL&gentype=txt&.submit=++Go++&.cgifields=endyear&.cgifields=dac&.cgifields=delayed&.cgifields=startyear&.cgifields=endmonth&.cgifields=endday&.cgifields=startday&.cgifields=startmonth&.cgifields=gentype'
 

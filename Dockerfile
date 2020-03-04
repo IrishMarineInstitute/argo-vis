@@ -68,8 +68,8 @@ RUN cd ffmpeg && \
 RUN cd ffmpeg && make -j 8
 RUN cd ffmpeg && make install
 
-RUN git clone --depth 1 https://github.com/dgilman/aacgain.git
-RUN cd aacgain && ./build.sh
+RUN git clone -n https://github.com/dgilman/aacgain.git
+RUN cd aacgain && git checkout 93440798a533ea101ff178689fa6ce6724b253b7  && ./build.sh
 
 RUN npm install -g timecut
 

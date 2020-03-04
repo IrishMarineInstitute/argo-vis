@@ -55,7 +55,7 @@ do
 	ffmpeg -i /output/$item.mp4 -vf scale=512:256 /output/$item-scaled.mp4
 done
 date=$(date)
-cat>$basedir/index.html<<EOF
+cat>$basedir/output/index.html<<EOF
 <!doctype html>
 <html lang="en">
 <head>
