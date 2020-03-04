@@ -1,13 +1,13 @@
 # argo-vis
 Repository for visualising Argo float deployments through time in video
 
-This application runs in docker to generate mp4 video animations from (http://www.argo.ucsd.edu/)[argo] data 1998-now
+This application runs in docker to generate mp4 video animations from [argo](http://www.argo.ucsd.edu/) data 1998-now
 
-The Marine Institute specific use case is to display the data on a (https://pufferfishdisplays.com/)[Pufferfish display]
+The Marine Institute specific use case is to display the data on a [Pufferfish display](https://pufferfishdisplays.com/)
 
 ![alt text](example.gif "Example")
 
-Full videos can be (http://spiddal.marine.ie/argos/)[downloaded here].
+Full videos can be [downloaded here](http://spiddal.marine.ie/argos/).
 
 # Installing
 
