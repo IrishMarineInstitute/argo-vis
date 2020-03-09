@@ -12,10 +12,7 @@ ENV LC_ALL en_US.UTF-8
 # Enable Universe and Multiverse and install dependencies.
 
 #RUN echo deb http://archive.ubuntu.com/ubuntu precise universe multiverse >> /etc/apt/sources.list; \
-RUN  apt-get update; \
-    apt-get -y install autoconf automake build-essential git mercurial cmake libass-dev libgpac-dev libtheora-dev libtool libvdpau-dev libvorbis-dev pkg-config texi2html zlib1g-dev libmp3lame-dev wget yasm openssl libssl-dev; \
-    apt-get clean
-
+RUN apt-get update && apt-get -y install autoconf automake build-essential git mercurial cmake libass-dev libgpac-dev libtheora-dev libtool libvdpau-dev libvorbis-dev pkg-config texi2html zlib1g-dev libmp3lame-dev wget yasm openssl libssl-dev libsnappy-dev && apt-get clean
 
 WORKDIR /usr/local/src
 RUN git clone --depth 1 https://github.com/l-smash/l-smash 
@@ -61,7 +58,7 @@ RUN git clone https://github.com/FFmpeg/FFmpeg.git
 RUN mv FFmpeg ffmpeg
 RUN cd ffmpeg && \
     ./configure --extra-libs="-ldl" --enable-gpl --enable-libass \
-                --enable-libfdk-aac --enable-libmp3lame \
+                --enable-libfdk-aac --enable-libmp3lame --enable-libsnappy \
                 --enable-libopus --enable-libtheora --enable-libvorbis \
                 --enable-libvpx --enable-libx264 --enable-libx265 \
                 --enable-nonfree --enable-openssl --pkg-config-flags="--static"

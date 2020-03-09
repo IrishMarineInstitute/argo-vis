@@ -26,11 +26,11 @@
 </div>
 <script>
 	var backgroundImage = new Image();
-        var stillblack = false;
+        var stillwhite = false;
         backgroundImage.onload = backgroundImageLoaded;
-        if((""+location.hash).indexOf("stillblack")>=0){
-	  stillblack = true;
-          backgroundImage.src = 'pufferblack2000x1000.jpg';
+        if((""+location.hash).indexOf("stillwhite")>=0){
+	  stillwhite = true;
+          backgroundImage.src = 'pufferwhite2000x1000.jpg';
 	}else{
           backgroundImage.src = 'puffermap2000x1000.jpg';
 	}
@@ -313,7 +313,7 @@ var showHeatmap = function(nprofiles,ndays,factor,radius,blur,minopacity){
             context.restore();
 	}
 	var drawBackgroundImage = function(context,scroll){
-		if(!stillblack){
+		if(!stillwhite){
 		  scrollpos = (scrollpos+scroll) % width;
 		}
 		drawOffsetImage(context,backgroundImage,0,0);

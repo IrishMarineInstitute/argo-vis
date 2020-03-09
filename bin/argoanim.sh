@@ -24,29 +24,29 @@ nginxip=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddre
 output=$basedir/output
 mkdir -p $output
 chmod 777 $output
-url_a=http://nginx/argos/
-video_a=argos.mp4
-url_b='http://nginx/argos/#stillblack'
-video_b=argosk.mp4
-for item in b a; do
-  urlvar="url_${item}"
-  videovar="video_${item}"
-  echo vars $urlvar $videovar
-  url=${!urlvar}
-  video=${!videovar}
-  echo generating $video from $url
-  docker run --add-host=nginx:$nginxip --shm-size 1G --rm \
+
+url='http://nginx/argos/#stillwhite'
+docker run --add-host=nginx:$nginxip --shm-size 1G --rm \
 	-v $output:/output \
 	timecut \
- timecut "$url" \
- --viewport=2000,1000 --fps=24 --duration=$VIDEO_DURATION_SECONDS \
+ timecut "${url}" \
+ --viewport=2000,1000 --fps=30 --duration=$VIDEO_DURATION_SECONDS \
  --frame-cache --pix-fmt=yuv420p \
- --output=/output/$video \
+ --output-options="-c:v hap -format hap_alpha" \
+ --output=/output/argos.mov \
  -L "--no-sandbox --disable-dev-shm-usage --disable-gpu"
-done
+
+docker run --add-host=nginx:$nginxip --shm-size 1G --rm \
+	-v $output:/output \
+	timecut \
+ timecut "http://nginx/argos/" \
+ --viewport=2000,1000 --fps=30 --duration=$VIDEO_DURATION_SECONDS \
+ --frame-cache --pix-fmt=yuv420p \
+ --output=/output/argos.mp4 \
+ -L "--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
 echo "videos done, now creating scaled versions"
-for item in argos argosk
+for item in argos
 do
   rm -f ${basedir}/output/${item}-scaled.mp4
   docker run --shm-size 1G --rm \
