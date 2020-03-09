@@ -71,9 +71,8 @@ cat>$basedir/output/index.html<<EOF
 <p><a href="argos.mp4">argos.mp4</a>
 <p><a href="argos-scaled.mp4">argos-scaled.mp4</a>
 
-<h2>Without Map</h2>
-<p><a href="argosk.mp4">argosk.mp4</a>
-<p><a href="argosk-scaled.mp4">argosk-scaled.mp4</a>
+<h2>Without Map (hap format)</h2>
+<p><a href="argosk.mp4">argos.mov</a>
 </body>
 </html>
 EOF
