@@ -1,18 +1,21 @@
-FROM nodesource/xenial
+FROM node:15.3.0
 
 # Set Locale
 
-RUN locale-gen en_US.UTF-8  
-ENV LANG en_US.UTF-8  
-ENV LANGUAGE en_US:en  
-ENV LC_ALL en_US.UTF-8
+# RUN locale-gen en_US.UTF-8  
+#ENV LANG en_US.UTF-8  
+#ENV LANGUAGE en_US:en  
+#ENV LC_ALL en_US.UTF-8
 
 
 
 # Enable Universe and Multiverse and install dependencies.
 
 #RUN echo deb http://archive.ubuntu.com/ubuntu precise universe multiverse >> /etc/apt/sources.list; \
-RUN apt-get update && apt-get -y install autoconf automake build-essential git mercurial cmake libass-dev libgpac-dev libtheora-dev libtool libvdpau-dev libvorbis-dev pkg-config texi2html zlib1g-dev libmp3lame-dev wget yasm openssl libssl-dev libsnappy-dev && apt-get clean
+RUN  apt-get update; \
+    apt-get -y install autoconf automake build-essential git mercurial cmake libass-dev libgpac-dev libtheora-dev libtool libvdpau-dev libvorbis-dev pkg-config texi2html zlib1g-dev libmp3lame-dev wget yasm openssl libssl-dev; \
+    apt-get clean
+
 
 WORKDIR /usr/local/src
 RUN git clone --depth 1 https://github.com/l-smash/l-smash 
@@ -32,7 +35,7 @@ RUN cd x264 && ./configure --enable-static
 RUN cd x264 && make -j 8
 RUN cd x264 && make install
 
-RUN hg clone https://bitbucket.org/multicoreware/x265 
+RUN git clone https://github.com/videolan/x265 
 RUN cd x265/build/linux && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../../source
 RUN cd x265/build/linux && make -j 8
 RUN cd x265/build/linux && make install
@@ -48,7 +51,7 @@ RUN cd libvpx && ./configure --disable-examples
 RUN cd libvpx && make -j 8
 RUN cd libvpx && make install
 
-RUN git clone https://git.xiph.org/opus.git
+RUN git clone https://github.com/xiph/opus.git
 RUN cd opus && ./autogen.sh
 RUN cd opus && ./configure --disable-shared
 RUN cd opus && make -j 8
@@ -58,7 +61,7 @@ RUN git clone https://github.com/FFmpeg/FFmpeg.git
 RUN mv FFmpeg ffmpeg
 RUN cd ffmpeg && \
     ./configure --extra-libs="-ldl" --enable-gpl --enable-libass \
-                --enable-libfdk-aac --enable-libmp3lame --enable-libsnappy \
+                --enable-libfdk-aac --enable-libmp3lame \
                 --enable-libopus --enable-libtheora --enable-libvorbis \
                 --enable-libvpx --enable-libx264 --enable-libx265 \
                 --enable-nonfree --enable-openssl --pkg-config-flags="--static"
